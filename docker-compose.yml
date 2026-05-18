@@ -5,6 +5,23 @@ services:
     ports:
       - "8001:8001"
     restart: unless-stopped
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL}
+      OLLAMA_API_KEY: ${OLLAMA_API_KEY}
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-gpt-oss:20b}
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHMS: ${JWT_ALGORITHMS:-HS384}
+      CORS_ORIGINS: ${CORS_ORIGINS:-}
+      SESSION_BACKEND: ${SESSION_BACKEND:-memory}
+      REDIS_URL: ${REDIS_URL:-redis://localhost:6379/0}
+      RATE_LIMIT_PER_MINUTE: ${RATE_LIMIT_PER_MINUTE:-20}
+      APP_PORT: ${APP_PORT:-8000}
+      APP_HOST: ${APP_HOST:-0.0.0.0}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
