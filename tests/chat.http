@@ -1,0 +1,87 @@
+@nexusgov_api = http://45.79.207.184:8080
+@nexusgov_ia  = http://localhost:8000
+
+### 1. Login no nexusgov-api
+# @name login
+POST {{nexusgov_api}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "email": "dre@teste.com",
+  "senha": "admin123"
+}
+
+###
+
+@token = {{login.response.body.token}}
+
+### 2. Chat sem informar contrato — deve pedir que informe
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "me fale sobre o contrato 2025/10?"
+}
+
+### 3. Informa o contrato — sistema deve lembrar na sessão
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "quais os postos incluidos neste atesto?"
+}
+
+### 4. Pergunta sobre o contrato ativo (sem mencionar número) — sessão deve manter
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "Mostre todos os colaboradores cadastrados e a categoria dos seus respectivos postos"
+}
+
+### 5. Troca de contrato durante a conversa
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "agora quero ver o contrato 2023/5"
+}
+
+### 6. Pergunta financeira sobre o novo contrato ativo
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "Quais ordens de serviço foram emitidas e quais os valores?"
+}
+
+### 7. Contrato inexistente — deve responder de forma amigável (não erro HTTP)
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "mensagem": "quero ver o contrato 2099/999"
+}
+
+### 8. Token inválido — deve retornar 401
+POST {{nexusgov_ia}}/api/v1/chat
+Authorization: Bearer token.invalido.aqui
+Content-Type: application/json
+
+{
+  "mensagem": "Qual o valor mensal?"
+}
+
+### 9. Token ausente — deve retornar 403
+POST {{nexusgov_ia}}/api/v1/chat
+Content-Type: application/json
+
+{
+  "mensagem": "Qual o valor mensal?"
+}
