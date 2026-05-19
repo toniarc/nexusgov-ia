@@ -1,5 +1,5 @@
 @nexusgov_api = http://45.79.207.184:8080
-@nexusgov_ia  = http://localhost:8000
+@nexusgov_ia  = http://45.79.207.184:8001
 
 ### 1. Login no nexusgov-api
 # @name login

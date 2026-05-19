@@ -50,17 +50,11 @@ def test_chat_aguardando_contrato(client, token):
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/event-stream")
 
-    eventos: list[tuple[str, dict]] = []
-    event_name = None
+    eventos: list[dict] = []
     for raw in r.text.split("\n"):
-        if raw.startswith("event:"):
-            event_name = raw.split(":", 1)[1].strip()
-        elif raw.startswith("data:") and event_name:
-            eventos.append((event_name, json.loads(raw.split(":", 1)[1].strip())))
-            event_name = None
+        if raw.startswith("data:"):
+            eventos.append(json.loads(raw.split(":", 1)[1].strip()))
 
     assert eventos, "stream vazio"
-    assert eventos[0][0] == "meta"
-    assert eventos[0][1]["aguardando_contrato"] is True
-    assert eventos[-1][0] == "done"
-    assert "resposta_markdown" in eventos[-1][1]
+    assert any(ev["type"] == "delta" for ev in eventos)
+    assert eventos[-1]["type"] == "done"

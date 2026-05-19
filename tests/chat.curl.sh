@@ -3,7 +3,7 @@
 # Uso: copie e cole bloco por bloco no terminal.
 
 NEXUSGOV_API="http://45.79.207.184:8080"
-NEXUSGOV_IA="http://localhost:8000"
+NEXUSGOV_IA="http://45.79.207.184:8001"
 
 ############################################
 # 1. Login no nexusgov-api → exporta TOKEN

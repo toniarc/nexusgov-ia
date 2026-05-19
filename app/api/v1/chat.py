@@ -37,8 +37,8 @@ async def chat(
 
     async def event_gen():
         async for ev in chat_service.processar_mensagem_stream(usuario_id, payload.mensagem):
-            data = json.dumps(ev.data, ensure_ascii=False)
-            yield f"event: {ev.event}\ndata: {data}\n\n"
+            data = json.dumps({"type": ev.event, **ev.data}, ensure_ascii=False)
+            yield f"data: {data}\n\n"
 
     return StreamingResponse(
         event_gen(),

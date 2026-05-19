@@ -19,7 +19,6 @@ from app.prompts.system_pt_br import (
     get_aguardando_contrato_msg,
 )
 from app.services.contract_resolver import extrair_referencia_contrato, resolver_contrato
-from app.services.markdown_renderer import render
 from app.services.query_engine import build_query_engine, get_ollama_client
 from app.services.session_store import SessionState, SessionStore
 from app.services.tools import REGISTRY, dispatch, ollama_tool_definitions
@@ -61,9 +60,8 @@ class ChatService:
                     "Verifique o ano, o número e suas permissões."
                 )
                 self._sessions.update(session)
-                yield self._meta_event(usuario_id, session, aguardando=session.contrato_id is None)
-                yield StreamEvent("content", {"delta": md})
-                yield self._done_event(md)
+                yield StreamEvent("delta", {"content": md})
+                yield self._done_event()
                 return
             if contrato_id != session.contrato_id:
                 logger.info("Sessão %s: trocando contrato para %s/%s", usuario_id, ano, numero)
@@ -72,15 +70,12 @@ class ChatService:
         if session.contrato_id is None:
             md = get_aguardando_contrato_msg()
             self._sessions.update(session)
-            yield self._meta_event(usuario_id, session, aguardando=True)
-            yield StreamEvent("content", {"delta": md})
-            yield self._done_event(md)
+            yield StreamEvent("delta", {"content": md})
+            yield self._done_event()
             return
 
         session.adicionar_mensagem("user", mensagem)
         historico = session.historico_recente(n=6)
-
-        yield self._meta_event(usuario_id, session, aguardando=False)
 
         try:
             tool_outcome = None
@@ -101,9 +96,9 @@ class ChatService:
                 )
         except _ChatError as err:
             self._sessions.update(session)
-            yield StreamEvent("error", {"mensagem": err.message})
-            yield StreamEvent("content", {"delta": err.message})
-            yield self._done_event(err.message)
+            yield StreamEvent("error", {"message": err.message})
+            yield StreamEvent("delta", {"content": err.message})
+            yield self._done_event()
             return
 
         synth_template = build_synthesis_prompt_template(
@@ -117,29 +112,29 @@ class ChatService:
         try:
             async for kind, delta in self._stream_synthesis(prompt_text):
                 if kind == "thinking":
-                    yield StreamEvent("thinking", {"delta": delta})
+                    yield StreamEvent("thinking", {"content": delta})
                 else:
                     full_content += delta
-                    yield StreamEvent("content", {"delta": delta})
+                    yield StreamEvent("delta", {"content": delta})
         except (httpx.TimeoutException, TimeoutError):
             logger.exception("Timeout no LLM (usuario_id=%s)", usuario_id)
             full_content = "O serviço de IA demorou demais para responder. Tente uma pergunta mais simples."
-            yield StreamEvent("error", {"mensagem": full_content})
-            yield StreamEvent("content", {"delta": full_content})
+            yield StreamEvent("error", {"message": full_content})
+            yield StreamEvent("delta", {"content": full_content})
         except httpx.HTTPError:
             logger.exception("Falha de rede com LLM (usuario_id=%s)", usuario_id)
             full_content = "Não foi possível contatar o serviço de IA agora. Tente novamente."
-            yield StreamEvent("error", {"mensagem": full_content})
-            yield StreamEvent("content", {"delta": full_content})
+            yield StreamEvent("error", {"message": full_content})
+            yield StreamEvent("delta", {"content": full_content})
         except Exception:
             logger.exception("Erro inesperado na síntese (usuario_id=%s)", usuario_id)
             full_content = "Desculpe, ocorreu um erro ao processar sua pergunta. Tente novamente."
-            yield StreamEvent("error", {"mensagem": full_content})
-            yield StreamEvent("content", {"delta": full_content})
+            yield StreamEvent("error", {"message": full_content})
+            yield StreamEvent("delta", {"content": full_content})
 
         session.adicionar_mensagem("assistant", full_content)
         self._sessions.update(session)
-        yield self._done_event(full_content)
+        yield self._done_event()
 
     def _executar_sql(
         self, session: SessionState, historico: list[dict], mensagem: str
@@ -309,29 +304,9 @@ class ChatService:
                 raise payload  # type: ignore[misc]
             yield kind, payload
 
-    def _meta_event(self, usuario_id: int, session: SessionState, aguardando: bool) -> StreamEvent:
-        contrato = self._contrato_ativo(session)
-        return StreamEvent(
-            "meta",
-            {
-                "usuario_id": usuario_id,
-                "contrato_ativo": contrato,
-                "aguardando_contrato": aguardando,
-            },
-        )
-
     @staticmethod
-    def _done_event(markdown: str) -> StreamEvent:
-        return StreamEvent(
-            "done",
-            {"resposta_markdown": markdown, "resposta_html": render(markdown)},
-        )
-
-    @staticmethod
-    def _contrato_ativo(session: SessionState) -> dict | None:
-        if session.contrato_id is None:
-            return None
-        return {"ano": session.contrato_ano, "numero": session.contrato_numero}
+    def _done_event() -> StreamEvent:
+        return StreamEvent("done", {})
 
 
 class _ChatError(Exception):
