@@ -5,7 +5,7 @@ from llama_index.core import Settings as LlamaSettings, SQLDatabase, VectorStore
 from llama_index.core.indices.struct_store import SQLTableRetrieverQueryEngine
 from llama_index.core.objects import ObjectIndex, SQLTableNodeMapping, SQLTableSchema
 from llama_index.core.prompts import PromptTemplate
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+from llama_index.embeddings.ollama import OllamaEmbedding
 from llama_index.llms.ollama import Ollama
 from ollama import Client
 from sqlalchemy.engine import Engine
@@ -75,7 +75,10 @@ def get_ollama_client() -> Client:
 
 
 def configure_llama_globals() -> None:
-    """Configura LLM e embedding globais do LlamaIndex. Chamado uma vez no startup."""
+    """Configura LLM e embedding globais do LlamaIndex. Chamado uma vez no startup.
+
+    LLM: Ollama da nuvem (com API key). Embeddings: bge-m3 no Ollama local.
+    """
     settings = get_settings()
 
     client = get_ollama_client()
@@ -88,7 +91,10 @@ def configure_llama_globals() -> None:
         additional_kwargs={"Authorization": f"Bearer {settings.ollama_api_key}"},
     )
 
-    LlamaSettings.embed_model = HuggingFaceEmbedding(model_name=settings.embedding_model_name)
+    LlamaSettings.embed_model = OllamaEmbedding(
+        model_name=settings.ollama_embed_model,
+        base_url=settings.ollama_embed_base_url,
+    )
 
 
 class CachedSQLDatabase(SQLDatabase):

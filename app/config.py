@@ -18,8 +18,30 @@ class Settings(BaseSettings):
     ollama_model: str = "gpt-oss:20b"
     ollama_request_timeout: float = 120.0
 
-    # Embeddings
-    embedding_model_name: str = "BAAI/bge-small-en-v1.5"
+    # Embeddings — bge-m3 via Ollama LOCAL (o LLM usa o Ollama da nuvem acima)
+    ollama_embed_base_url: str = "http://localhost:11434"
+    ollama_embed_api_key: str = ""
+    ollama_embed_model: str = "bge-m3"
+    embedding_dim: int = 1024
+
+    # MinIO / S3 (mesmo storage do nexusgov-api)
+    s3_endpoint: str = "http://localhost:9000"
+    s3_access_key: str = ""
+    s3_secret_key: str = ""
+    s3_bucket_geral: str = "br.com.sofintech.nexusgov.geral"
+
+    # Ingestão de documentos
+    ingest_enabled: bool = True
+    ingest_poll_seconds: int = 30
+    ingest_max_tentativas: int = 3
+    ingest_lote: int = 5
+    # Chunk = 1 frase; fragmentos < min agregam à frase seguinte; > max fatia em janela.
+    chunk_max_chars: int = 1500
+    chunk_min_chars: int = 80
+    ocr_lang: str = "por"
+
+    # Chat sobre documentos (RAG) — chunks são frases; top_k maior compensa contexto curto
+    doc_chat_top_k: int = 12
 
     # JWT (mesmo secret do nexusgov-api, base64-encoded)
     jwt_secret: str

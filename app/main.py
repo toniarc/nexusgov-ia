@@ -1,73 +1,28 @@
 import logging
-import uuid
 from contextlib import asynccontextmanager
-from contextvars import ContextVar
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi.errors import RateLimitExceeded
 
 from app.api.v1.chat import router as chat_router
+from app.api.v1.documentos import router as documentos_router
 from app.api.v1.health import router as health_router
 from app.config import get_settings
 from app.core.exceptions import registrar_handlers
 from app.core.rate_limit import limiter, rate_limit_exceeded_handler
+from app.core.request_id import RequestIdMiddleware, configurar_logging
 from app.services.database import attach_sql_logger, create_engine_db
+from app.services.ingest_service import encerrar_poller, iniciar_poller
 from app.services.query_engine import (
     build_sql_database,
     build_table_object_index,
     configure_llama_globals,
 )
 from app.services.session_store import build_session_store
-from slowapi.errors import RateLimitExceeded
 
-
-request_id_ctx: ContextVar[str] = ContextVar("request_id", default="-")
-
-
-class RequestIdFilter(logging.Filter):
-    def filter(self, record: logging.LogRecord) -> bool:
-        record.request_id = request_id_ctx.get()
-        return True
-
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s [%(request_id)s] %(name)s: %(message)s",
-)
-for h in logging.getLogger().handlers:
-    h.addFilter(RequestIdFilter())
-
+configurar_logging(sql_echo=get_settings().sql_echo)
 logger = logging.getLogger(__name__)
-_settings = get_settings()
-logging.getLogger("sqlalchemy.engine").setLevel(logging.INFO if _settings.sql_echo else logging.WARNING)
-
-
-class RequestIdMiddleware:
-    """ASGI middleware puro — não buferiza StreamingResponse."""
-
-    def __init__(self, app):
-        self.app = app
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-
-        headers = {k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])}
-        rid = headers.get("x-request-id") or uuid.uuid4().hex
-        token = request_id_ctx.set(rid)
-
-        async def send_wrapper(message):
-            if message["type"] == "http.response.start":
-                raw = list(message.get("headers", []))
-                raw.append((b"x-request-id", rid.encode("latin-1")))
-                message["headers"] = raw
-            await send(message)
-
-        try:
-            await self.app(scope, receive, send_wrapper)
-        finally:
-            request_id_ctx.reset(token)
 
 
 @asynccontextmanager
@@ -79,9 +34,11 @@ async def lifespan(app: FastAPI):
     app.state.table_object_index = build_table_object_index(app.state.sql_database)
     attach_sql_logger(app.state.db_engine)
     app.state.session_store = build_session_store()
+    iniciar_poller(app)
     logger.info("nexusgov-ia pronto.")
     yield
     logger.info("Encerrando nexusgov-ia...")
+    await encerrar_poller(app)
     app.state.db_engine.dispose()
     close = getattr(app.state.session_store, "close", None)
     if callable(close):
@@ -113,6 +70,7 @@ def criar_app() -> FastAPI:
     registrar_handlers(app)
     app.include_router(health_router)
     app.include_router(chat_router)
+    app.include_router(documentos_router)
 
     return app
 

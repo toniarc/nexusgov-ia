@@ -3,6 +3,7 @@ from typing import Any
 from sqlalchemy.engine import Engine
 
 from app.services.tools.base import ToolSpec
+from app.services.tools.documentos_contrato import SPEC as _DOCUMENTOS
 from app.services.tools.fiscalizacao import SPEC as _FISCALIZACAO
 from app.services.tools.overview_contrato import SPEC as _OVERVIEW
 from app.services.tools.postos_trabalho import SPEC as _POSTOS
@@ -11,7 +12,7 @@ from app.services.tools.valores_contrato import SPEC as _VALORES
 
 REGISTRY: dict[str, ToolSpec] = {
     spec.name: spec
-    for spec in (_OVERVIEW, _VALORES, _FISCALIZACAO, _POSTOS)
+    for spec in (_OVERVIEW, _VALORES, _FISCALIZACAO, _POSTOS, _DOCUMENTOS)
 }
 
 

@@ -1,0 +1,216 @@
+{
+  "descricao": "Dataset de avaliação do RAG de documentos de contrato. Baseado no anexo de exemplo docs/anexo-contrato-exemplo/contrato_0412025_cr_obras_da_construcao_civil_ltda_318.pdf (Termo de Referência SEDUC-PA, manutenção predial corretiva). Perguntas 'correta': todos os grupos de keywords devem aparecer na resposta do LLM (cada grupo aceita alternativas). Perguntas 'errada': a resposta fornecida é deliberadamente incorreta e NENHUMA keyword proibida pode aparecer na resposta do LLM.",
+  "arquivo_exemplo": "contrato_0412025_cr_obras_da_construcao_civil_ltda_318.pdf",
+  "perguntas": [
+    {
+      "id": 1,
+      "tipo": "correta",
+      "pergunta": "Qual é o objeto do contrato?",
+      "resposta_esperada": "Registro de preços para eventual prestação de serviços comuns de engenharia com fornecimento de mão de obra, materiais e equipamentos, para manutenção predial corretiva das Unidades Educacionais do Estado do Pará.",
+      "keywords_esperadas": [["manutenção predial"], ["engenharia"]]
+    },
+    {
+      "id": 2,
+      "tipo": "correta",
+      "pergunta": "Qual órgão é o contratante desses serviços de manutenção predial?",
+      "resposta_esperada": "A Secretaria de Estado de Educação do Pará (SEDUC), por meio da Secretaria Adjunta de Infraestrutura / Diretoria de Apoio à Rede Física.",
+      "keywords_esperadas": [["Educação", "SEDUC"]]
+    },
+    {
+      "id": 3,
+      "tipo": "correta",
+      "pergunta": "Qual é o valor estimado total para o contrato?",
+      "resposta_esperada": "R$ 93.319.032,14 (noventa e três milhões, trezentos e dezenove mil e trinta e dois reais e quatorze centavos).",
+      "keywords_esperadas": [["93.319.032,14"]]
+    },
+    {
+      "id": 4,
+      "tipo": "correta",
+      "pergunta": "Qual é o prazo de vigência previsto?",
+      "resposta_esperada": "12 (doze) meses.",
+      "keywords_esperadas": [["12", "doze"]]
+    },
+    {
+      "id": 5,
+      "tipo": "correta",
+      "pergunta": "Qual a modalidade de licitação utilizada?",
+      "resposta_esperada": "Pregão Eletrônico, para formação de registro de preços.",
+      "keywords_esperadas": [["Pregão", "pregão"]]
+    },
+    {
+      "id": 6,
+      "tipo": "correta",
+      "pergunta": "Qual o critério de julgamento das propostas na licitação?",
+      "resposta_esperada": "Maior Desconto.",
+      "keywords_esperadas": [["desconto", "Desconto"]]
+    },
+    {
+      "id": 7,
+      "tipo": "correta",
+      "pergunta": "Em quanto tempo será efetuado o pagamento dos serviços?",
+      "resposta_esperada": "Em até 30 (trinta) dias, a contar da data do atesto na nota fiscal, após o recebimento do objeto pela fiscalização.",
+      "keywords_esperadas": [["30", "trinta"]]
+    },
+    {
+      "id": 8,
+      "tipo": "correta",
+      "pergunta": "Qual a garantia mínima exigida para os serviços executados?",
+      "resposta_esperada": "Garantia mínima de 01 (um) ano, a contar da data do recebimento definitivo do serviço.",
+      "keywords_esperadas": [["ano"], ["recebimento definitivo", "definitivo"]]
+    },
+    {
+      "id": 9,
+      "tipo": "correta",
+      "pergunta": "Qual o prazo máximo para a contratada providenciar reparos de serviços em garantia?",
+      "resposta_esperada": "5 (cinco) dias corridos, contados do recebimento da comunicação.",
+      "keywords_esperadas": [["5", "cinco"]]
+    },
+    {
+      "id": 10,
+      "tipo": "correta",
+      "pergunta": "Qual a multa diária por atraso injustificado no início ou na conclusão dos serviços?",
+      "resposta_esperada": "0,5% (cinco décimos por cento) por dia, sobre o valor da Ordem de Serviço em mora.",
+      "keywords_esperadas": [["0,5", "cinco décimos"]]
+    },
+    {
+      "id": 11,
+      "tipo": "correta",
+      "pergunta": "Qual a multa aplicada sobre o valor do serviço recusado?",
+      "resposta_esperada": "Multa de 5% (cinco por cento) sobre o valor do serviço recusado.",
+      "keywords_esperadas": [["5%", "5 %", "cinco por cento"]]
+    },
+    {
+      "id": 12,
+      "tipo": "correta",
+      "pergunta": "Qual o BDI referencial máximo para serviços?",
+      "resposta_esperada": "28,82%.",
+      "keywords_esperadas": [["28,82"]]
+    },
+    {
+      "id": 13,
+      "tipo": "correta",
+      "pergunta": "Qual o BDI referencial para fornecimento de equipamentos?",
+      "resposta_esperada": "16,32%, conforme recomendação de Acórdão do TCU.",
+      "keywords_esperadas": [["16,32"]]
+    },
+    {
+      "id": 14,
+      "tipo": "correta",
+      "pergunta": "Quais tabelas de preços são usadas como referência?",
+      "resposta_esperada": "SINAPI e SEDOP-PA, desonerado.",
+      "keywords_esperadas": [["SINAPI"], ["SEDOP"]]
+    },
+    {
+      "id": 15,
+      "tipo": "correta",
+      "pergunta": "Os preços registrados podem ser reajustados durante a vigência da Ata?",
+      "resposta_esperada": "Não. Durante a vigência da Ata os preços registrados serão fixos e irreajustáveis, exceto nas hipóteses legais previstas.",
+      "keywords_esperadas": [["irreajust", "fixos"]]
+    },
+    {
+      "id": 16,
+      "tipo": "correta",
+      "pergunta": "São aceitas propostas com percentual de desconto igual a zero?",
+      "resposta_esperada": "Não. Não serão aceitas propostas com percentual de desconto de valor igual a zero.",
+      "keywords_esperadas": [["zero"], ["Não", "não"]]
+    },
+    {
+      "id": 17,
+      "tipo": "correta",
+      "pergunta": "É permitida a subcontratação total do objeto do contrato?",
+      "resposta_esperada": "Não. É vedada a subcontratação total do objeto, sob pena de rescisão contratual.",
+      "keywords_esperadas": [["subcontrata"], ["rescisão", "vedada", "não"]]
+    },
+    {
+      "id": 18,
+      "tipo": "correta",
+      "pergunta": "Em que condição a subcontratação parcial é permitida?",
+      "resposta_esperada": "Mediante autorização expressa da Fiscalização, observadas as condições do Termo de Referência.",
+      "keywords_esperadas": [["autorização"], ["fiscalização", "Fiscalização"]]
+    },
+    {
+      "id": 19,
+      "tipo": "correta",
+      "pergunta": "Como se dará o consumo da Ata de Registro de Preços?",
+      "resposta_esperada": "Por meio de contrato formalizado com a empresa vencedora ou instrumento equivalente (empenho e Ordem de Serviço).",
+      "keywords_esperadas": [["Ordem de Serviço", "ordem de serviço"]]
+    },
+    {
+      "id": 20,
+      "tipo": "correta",
+      "pergunta": "Qual norma técnica sobre manutenção de edificações é citada no documento?",
+      "resposta_esperada": "A NBR 5674/99, segundo a qual a manutenção de edificações visa preservar ou recuperar as condições ambientais adequadas ao uso previsto.",
+      "keywords_esperadas": [["5674"]]
+    },
+    {
+      "id": 21,
+      "tipo": "errada",
+      "pergunta": "Qual é o valor estimado total para o contrato?",
+      "resposta_errada": "R$ 45.000.000,00 (quarenta e cinco milhões de reais).",
+      "keywords_proibidas": ["45.000.000", "quarenta e cinco milhões"]
+    },
+    {
+      "id": 22,
+      "tipo": "errada",
+      "pergunta": "Qual é o prazo de vigência previsto?",
+      "resposta_errada": "24 (vinte e quatro) meses.",
+      "keywords_proibidas": ["24 meses", "vinte e quatro meses"]
+    },
+    {
+      "id": 23,
+      "tipo": "errada",
+      "pergunta": "Qual a modalidade de licitação utilizada?",
+      "resposta_errada": "Concorrência pública.",
+      "keywords_proibidas": ["oncorrência"]
+    },
+    {
+      "id": 24,
+      "tipo": "errada",
+      "pergunta": "Qual o critério de julgamento das propostas na licitação?",
+      "resposta_errada": "Menor preço global.",
+      "keywords_proibidas": ["enor preço"]
+    },
+    {
+      "id": 25,
+      "tipo": "errada",
+      "pergunta": "Em quanto tempo será efetuado o pagamento dos serviços?",
+      "resposta_errada": "Em até 90 (noventa) dias após a emissão da nota fiscal.",
+      "keywords_proibidas": ["90 dias", "90 (noventa)", "noventa dias"]
+    },
+    {
+      "id": 26,
+      "tipo": "errada",
+      "pergunta": "Qual a multa diária por atraso injustificado no início ou na conclusão dos serviços?",
+      "resposta_errada": "2% (dois por cento) por dia sobre o valor da Ordem de Serviço.",
+      "keywords_proibidas": ["2% (dois", "dois por cento) por dia", "2% por dia"]
+    },
+    {
+      "id": 27,
+      "tipo": "errada",
+      "pergunta": "Qual o BDI referencial máximo para serviços?",
+      "resposta_errada": "45%.",
+      "keywords_proibidas": ["45%", "45 %"]
+    },
+    {
+      "id": 28,
+      "tipo": "errada",
+      "pergunta": "Qual a garantia mínima exigida para os serviços executados?",
+      "resposta_errada": "5 (cinco) anos a contar da assinatura do contrato.",
+      "keywords_proibidas": ["5 anos", "cinco anos", "5 (cinco) anos"]
+    },
+    {
+      "id": 29,
+      "tipo": "errada",
+      "pergunta": "Quais tabelas de preços são usadas como referência?",
+      "resposta_errada": "Tabela FGV e tabela FIPE.",
+      "keywords_proibidas": ["FGV", "FIPE"]
+    },
+    {
+      "id": 30,
+      "tipo": "errada",
+      "pergunta": "Qual órgão é o contratante desses serviços de manutenção predial?",
+      "resposta_errada": "A Secretaria de Estado de Saúde do Pará (SESPA).",
+      "keywords_proibidas": ["Saúde", "SESPA"]
+    }
+  ]
+}
