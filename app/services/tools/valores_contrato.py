@@ -15,8 +15,6 @@ _SQL = text(
     """
     SELECT c.numero,
            c.ano,
-           c.valor_mensal,
-           c.valor_anual,
            c.valor_global,
            c.quantidade_max_postos
       FROM nexusgov.contrato c
@@ -39,9 +37,11 @@ def _handler(engine: Engine, contrato_id: int) -> dict[str, Any]:
 SPEC = ToolSpec(
     name="valores_contrato",
     description=(
-        "Retorna apenas os valores financeiros do contrato ativo: valor mensal, valor anual, "
-        "valor global e quantidade máxima de postos. Use para perguntas focadas em valores como "
-        "'qual o valor do contrato', 'valor mensal', 'quanto vale', 'valor global'."
+        "Retorna os valores financeiros do contrato ativo: valor global e quantidade máxima de "
+        "postos. O contrato registra APENAS o valor global — não há valor mensal nem anual. "
+        "Use para perguntas focadas em valores como 'qual o valor do contrato', 'quanto vale', "
+        "'valor global', e também para 'valor mensal'/'valor anual' (responda que o contrato "
+        "só possui valor global)."
     ),
     args_model=_Args,
     handler=_handler,

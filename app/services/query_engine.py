@@ -19,6 +19,9 @@ _DEFAULT_LIMIT = 100
 
 _NEXUSGOV_TABLES = [
     "contrato",
+    "contrato_item",
+    "forma_contratacao",
+    "categoria_objeto",
     "fornecedor",
     "fornecedor_representante",
     "fiscal",
@@ -58,6 +61,7 @@ REGRAS OBRIGATÓRIAS:
     LEFT JOIN nexusgov.fiscal fs ON fs.id = c.fiscal_suplente_id
     LEFT JOIN nexusgov.usuario us ON us.id = fs.usuario_id
   E traga no SELECT: f.razao_social, f.cnpj, ut.nome, ut.email, us.nome, us.email.
+- `contrato` NÃO possui `valor_mensal` nem `valor_anual` — o único valor é `valor_global`.
 
 Schema das tabelas disponíveis:
 {schema}

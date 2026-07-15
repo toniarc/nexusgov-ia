@@ -20,8 +20,6 @@ _SQL = text(
            c.objeto_resumido,
            c.inicio,
            c.fim,
-           c.valor_mensal,
-           c.valor_anual,
            c.valor_global,
            c.quantidade_max_postos,
            f.razao_social   AS fornecedor_razao_social,
@@ -29,13 +27,19 @@ _SQL = text(
            ut.nome          AS fiscal_titular_nome,
            ut.email         AS fiscal_titular_email,
            us.nome          AS fiscal_suplente_nome,
-           us.email         AS fiscal_suplente_email
+           us.email         AS fiscal_suplente_email,
+           fc.nome          AS modalidade_licitatoria,
+           co.nome          AS categoria_objeto,
+           un.nome          AS unidade_nome
       FROM nexusgov.contrato c
       LEFT JOIN nexusgov.fornecedor f ON f.id = c.fornecedor_id
       LEFT JOIN nexusgov.fiscal  ft ON ft.id = c.fiscal_titular_id
       LEFT JOIN nexusgov.usuario ut ON ut.id = ft.usuario_id
       LEFT JOIN nexusgov.fiscal  fs ON fs.id = c.fiscal_suplente_id
       LEFT JOIN nexusgov.usuario us ON us.id = fs.usuario_id
+      LEFT JOIN nexusgov.forma_contratacao fc ON fc.id = c.modalidade_licitatoria_id
+      LEFT JOIN nexusgov.categoria_objeto   co ON co.id = c.categoria_objeto_id
+      LEFT JOIN nexusgov.unidade            un ON un.id = c.unidade_id
      WHERE c.id = :contrato_id
      LIMIT 1
     """
@@ -56,10 +60,11 @@ SPEC = ToolSpec(
     name="overview_contrato",
     description=(
         "Retorna dados gerais do contrato ativo: número/ano, status, processo administrativo, "
-        "objeto, vigência (início/fim), valores (mensal/anual/global), quantidade máxima de "
-        "postos, dados do fornecedor contratado (razão social e CNPJ) e fiscais titular e suplente "
-        "(nome e email). Use para perguntas genéricas como 'me fale sobre o contrato', "
-        "'dados do contrato', 'resumo do contrato', 'me mostra o contrato'."
+        "objeto, vigência (início/fim), valor global, quantidade máxima de postos, modalidade "
+        "licitatória, categoria do objeto, unidade, dados do fornecedor contratado (razão social "
+        "e CNPJ) e fiscais titular e suplente (nome e email). Use para perguntas genéricas como "
+        "'me fale sobre o contrato', 'dados do contrato', 'resumo do contrato', "
+        "'me mostra o contrato'."
     ),
     args_model=_Args,
     handler=_handler,

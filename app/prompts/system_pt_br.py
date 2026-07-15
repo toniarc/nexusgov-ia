@@ -42,16 +42,19 @@ Pergunta: "me fale sobre o contrato 2025/10"
 SQL CORRETO:
 SELECT c.numero, c.ano, c.status, c.processo_administrativo,
        c.objeto_resumido, c.inicio, c.fim,
-       c.valor_mensal, c.valor_anual, c.valor_global, c.quantidade_max_postos,
+       c.valor_global, c.quantidade_max_postos,
        f.razao_social, f.cnpj,
        ut.nome AS fiscal_titular_nome, ut.email AS fiscal_titular_email,
-       us.nome AS fiscal_suplente_nome, us.email AS fiscal_suplente_email
+       us.nome AS fiscal_suplente_nome, us.email AS fiscal_suplente_email,
+       fc.nome AS modalidade_licitatoria, co.nome AS categoria_objeto
 FROM nexusgov.contrato c
 LEFT JOIN nexusgov.fornecedor f ON f.id = c.fornecedor_id
 LEFT JOIN nexusgov.fiscal ft ON ft.id = c.fiscal_titular_id
 LEFT JOIN nexusgov.usuario ut ON ut.id = ft.usuario_id
 LEFT JOIN nexusgov.fiscal fs ON fs.id = c.fiscal_suplente_id
 LEFT JOIN nexusgov.usuario us ON us.id = fs.usuario_id
+LEFT JOIN nexusgov.forma_contratacao fc ON fc.id = c.modalidade_licitatoria_id
+LEFT JOIN nexusgov.categoria_objeto co ON co.id = c.categoria_objeto_id
 WHERE c.id = {contrato_id}
 LIMIT 1;
 
@@ -64,18 +67,26 @@ SELECT id, fornecedor_id, ano, numero, ... FROM nexusgov.contrato WHERE ...
 == SCHEMA DO BANCO (schema: nexusgov) ==
 
 **contrato** (id, fornecedor_id, ano, numero, processo_administrativo, objeto_resumido,
-              inicio, fim, quantidade_max_postos, valor_mensal, valor_anual, valor_global,
-              status, fiscal_titular_id, fiscal_suplente_id, lei_aplicavel,
-              modalidade_licitatoria, categoria_objeto, classificacao_sigilo, numero_do,
-              unidade_mediadora_id, data_assinatura, prazo_dias, conta_contabil,
+              inicio, fim, quantidade_max_postos, valor_global, status,
+              fiscal_titular_id, fiscal_suplente_id, lei_aplicavel,
+              modalidade_licitatoria_id, categoria_objeto_id, classificacao_sigilo, numero_do,
+              unidade_id, data_assinatura, prazo_dias, conta_contabil,
               classificacao_orcamentaria, indice_reajuste, modalidade_garantia,
               garantia_percentual, garantia_vigencia, garantia_apolice,
               subcontratacao_permitida, multa_inadimplemento_pct, gestor_usuario_id,
               portaria_designacao, renovavel, renovado)
   → Tabela central. Sempre filtre: contrato.id = {contrato_id}
   → status: RASCUNHO | EM_REVISAO | DEVOLVIDO | APROVADO | EM_EXECUCAO | VENCIDO | FINALIZADO
-    (registros legados podem trazer ATIVO)
-  → unidade_mediadora_id referencia **unidade**. gestor_usuario_id referencia **usuario**.
+  → **`valor_global` é o ÚNICO valor do contrato.** NÃO existem `valor_mensal` nem `valor_anual`.
+  → unidade_id referencia **unidade**. gestor_usuario_id referencia **usuario**.
+  → modalidade_licitatoria_id referencia **forma_contratacao** (traga `nome`, não o id).
+  → categoria_objeto_id referencia **categoria_objeto** (traga `nome`, não o id).
+
+**forma_contratacao** (id, codigo, nome, natureza, enquadramento, meio_preferencial, status)
+  → Modalidade licitatória — JOIN via contrato.modalidade_licitatoria_id = forma_contratacao.id
+
+**categoria_objeto** (id, nome, descricao, status)
+  → Categoria do objeto — JOIN via contrato.categoria_objeto_id = categoria_objeto.id
 
 **fornecedor** (id, razao_social, nome_fantasia, cnpj, email, telefone, status,
                 representante_id, end_logradouro, end_bairro, end_numero, end_cep,
@@ -102,8 +113,10 @@ SELECT id, fornecedor_id, ano, numero, ... FROM nexusgov.contrato WHERE ...
 **posto_trabalho** (id, contrato_id, local_atuacao_id, categoria_posto_id, hora_inicio, hora_fim)
   → Filtre: posto_trabalho.contrato_id = {contrato_id}
 
-**categoria_posto_trabalho** (id, funcao, quantidade, valor)
+**categoria_posto_trabalho** (id, funcao, quantidade, valor, ativo)
   → JOIN via posto_trabalho.categoria_posto_id = categoria_posto_trabalho.id
+  → `valor` é o valor da categoria do posto. NÃO o some para derivar valor mensal do
+    contrato — a relação entre esse valor e o valor do contrato não está definida aqui.
 
 **local_atuacao** (id, nome, codigo, unidade_id, municipio_id, responsavel_id, ativo,
                    end_logradouro, end_bairro, end_numero, end_cep, end_complemento,
@@ -111,13 +124,15 @@ SELECT id, fornecedor_id, ano, numero, ... FROM nexusgov.contrato WHERE ...
   → JOIN via posto_trabalho.local_atuacao_id = local_atuacao.id
   → responsavel_id referencia **usuario**.
 
-**unidade** (id, nome, codigo, responsavel_id, ativo)
-  → JOIN via local_atuacao.unidade_id = unidade.id
+**unidade** (id, nome, codigo, sigla, orgao_entidade, email, responsavel_id,
+             responsavel_contato, observacoes, ativo)
+  → JOIN via local_atuacao.unidade_id = unidade.id ou contrato.unidade_id = unidade.id
+  → Absorveu a antiga `unidade_mediadora` (que não existe mais).
 
 **municipio** (id, nome, estado_id) / **estado** (id, nome, uf)
   → Dados geográficos dos locais de atuação e endereços.
 
-**colaborador** (id, nome, cpf, foto_chave_s3)
+**colaborador** (id, nome, cpf, foto_chave_s3, ativo)
   → Funcionários/prestadores vinculados aos postos
 
 **vinculo_posto** (posto_trabalho_id, colaborador_id, titular, situacao,
@@ -156,17 +171,27 @@ SELECT id, fornecedor_id, ano, numero, ... FROM nexusgov.contrato WHERE ...
   → indicacao_glosa: SEM_AJUSTE | GLOSA_PARCIAL | GLOSA_INTEGRAL
                      | NECESSITA_APURACAO_ADMINISTRATIVA
 
-**ordem_servico** (id, contrato_id, atesto_id, ano_os, sequencial_os, valor_bruto,
-                   valor_glosas, valor_final, observacoes_adicionais,
-                   emitida_por, emitida_em, assinada_por, assinada_em)
+**ordem_servico** (id, contrato_id, atesto_id, ano_os, sequencial_os, status, origem,
+                   valor_bruto, valor_glosas, valor_final, data_prevista,
+                   observacoes_adicionais, emitida_por, emitida_em, assinada_por, assinada_em)
   → Filtre: ordem_servico.contrato_id = {contrato_id}
   → Identifique a OS por `ano_os`/`sequencial_os`, nunca pelo id.
+  → status: RASCUNHO | EMITIDA | APROVACAO_FISCAL | APROVACAO_GESTOR | ENVIADA_FORNECEDOR
+            | RECEBIMENTO_PROVISORIO | RECEBIMENTO_DEFINITIVO | CANCELADA | REPROVADA
+  → origem: MANUAL | FISCALIZACAO
   → emitida_por / assinada_por referenciam **usuario**.
 
-**ordem_servico_item** (id, ordem_servico_id, atesto_posto_id, item_sequencial,
+**ordem_servico_item** (id, ordem_servico_id, atesto_posto_id, contrato_item_id,
+                         item_sequencial, quantidade_solicitada, valor_unitario, valor_total,
                          valor_base, valor_ajuste, valor_final)
   → JOIN via ordem_servico_id. O posto vem por **atesto_posto_id** → atesto_posto
     → posto_trabalho (NÃO existe `posto_trabalho_id` nesta tabela).
+  → atesto_posto_id só é preenchido em OS de origem FISCALIZACAO; em OS MANUAL o item
+    vem por contrato_item_id → **contrato_item** (traga `nome`).
+
+**contrato_item** (id, contrato_id, item_id, codigo, nome, descricao, tipo, unidade_medida,
+                    classificacao, qtd_contratada, qtd_executada, valor_unitario, valor_total)
+  → Itens do contrato. Filtre: contrato_item.contrato_id = {contrato_id}
 
 == FIM DO SCHEMA ==
 
@@ -185,6 +210,8 @@ com os dados consultados. Omita linhas cujos valores sejam nulos OU substitua po
 - **Fornecedor:** {{fornecedor.razao_social}}
 - **CNPJ:** {{fornecedor.cnpj}}
 - **Objeto:** {{objeto_resumido}}
+- **Modalidade:** {{forma_contratacao.nome}}
+- **Categoria do objeto:** {{categoria_objeto.nome}}
 
 ### Vigência
 - **Início:** {{inicio:DD/MM/AAAA}}
@@ -195,8 +222,6 @@ com os dados consultados. Omita linhas cujos valores sejam nulos OU substitua po
 ### Valores
 | Tipo | Valor |
 |------|-------|
-| Mensal | R$ {{valor_mensal}} |
-| Anual | R$ {{valor_anual}} |
 | Global | R$ {{valor_global}} |
 
 ### Fiscalização
@@ -220,8 +245,11 @@ com os dados consultados. Omita linhas cujos valores sejam nulos OU substitua po
 - Pergunta específica sobre valor → mostrar apenas seção **Valores**.
 - Pergunta sobre fiscal/fiscalização → mostrar apenas seção **Fiscalização**.
 - Pergunta "está ativo?" / vigência → mostrar header + **Vigência**.
-- Pergunta agregada (vários contratos) → tabela resumida: ano/número, fornecedor, fim, valor mensal.
+- Pergunta agregada (vários contratos) → tabela resumida: ano/número, fornecedor, fim, valor global.
 - Pergunta genérica "me mostra o contrato" → modelo completo acima.
+- Pergunta por "valor mensal" ou "valor anual": esses campos NÃO existem mais no contrato.
+  Informe o `valor_global` e diga que o contrato registra apenas o valor global.
+  NUNCA calcule ou estime um valor mensal/anual por conta própria.
 """
 
 _SYNTHESIS_TEMPLATE = """\
@@ -252,6 +280,8 @@ EXATAMENTE neste formato, preenchendo com os dados do SQL Response:
 - **Fornecedor:** <fornecedor.razao_social>
 - **CNPJ:** <fornecedor.cnpj>
 - **Objeto:** <objeto_resumido>
+- **Modalidade:** <modalidade_licitatoria>
+- **Categoria do objeto:** <categoria_objeto>
 
 ### Vigência
 - **Início:** <inicio>
@@ -262,8 +292,6 @@ EXATAMENTE neste formato, preenchendo com os dados do SQL Response:
 ### Valores
 | Tipo | Valor |
 |------|-------|
-| Mensal | R$ <valor_mensal> |
-| Anual | R$ <valor_anual> |
 | Global | R$ <valor_global> |
 
 ### Fiscalização
@@ -279,7 +307,8 @@ EXATAMENTE neste formato, preenchendo com os dados do SQL Response:
 - Pergunta apenas sobre valor → só a seção **Valores**.
 - Pergunta sobre fiscal → só a seção **Fiscalização**.
 - Pergunta "está ativo?" / vigência → header + **Vigência**.
-- Pergunta agregada (vários contratos) → tabela com ano/número, fornecedor, fim, valor mensal.
+- Pergunta agregada (vários contratos) → tabela com ano/número, fornecedor, fim, valor global.
+- O contrato só tem `valor_global`; não invente valor mensal/anual que não venha do SQL Response.
 
 == ENTRADA ==
 Pergunta: {query_str}
