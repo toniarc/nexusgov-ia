@@ -24,14 +24,14 @@ _SQL = text(
            c.valor_anual,
            c.valor_global,
            c.quantidade_max_postos,
-           e.razao_social   AS empresa_razao_social,
-           e.cnpj           AS empresa_cnpj,
+           f.razao_social   AS fornecedor_razao_social,
+           f.cnpj           AS fornecedor_cnpj,
            ut.nome          AS fiscal_titular_nome,
            ut.email         AS fiscal_titular_email,
            us.nome          AS fiscal_suplente_nome,
            us.email         AS fiscal_suplente_email
       FROM nexusgov.contrato c
-      LEFT JOIN nexusgov.empresa e  ON e.id = c.empresa_id
+      LEFT JOIN nexusgov.fornecedor f ON f.id = c.fornecedor_id
       LEFT JOIN nexusgov.fiscal  ft ON ft.id = c.fiscal_titular_id
       LEFT JOIN nexusgov.usuario ut ON ut.id = ft.usuario_id
       LEFT JOIN nexusgov.fiscal  fs ON fs.id = c.fiscal_suplente_id
@@ -57,7 +57,7 @@ SPEC = ToolSpec(
     description=(
         "Retorna dados gerais do contrato ativo: número/ano, status, processo administrativo, "
         "objeto, vigência (início/fim), valores (mensal/anual/global), quantidade máxima de "
-        "postos, dados da empresa contratada (razão social e CNPJ) e fiscais titular e suplente "
+        "postos, dados do fornecedor contratado (razão social e CNPJ) e fiscais titular e suplente "
         "(nome e email). Use para perguntas genéricas como 'me fale sobre o contrato', "
         "'dados do contrato', 'resumo do contrato', 'me mostra o contrato'."
     ),

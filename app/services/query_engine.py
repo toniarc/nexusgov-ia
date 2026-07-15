@@ -19,9 +19,11 @@ _DEFAULT_LIMIT = 100
 
 _NEXUSGOV_TABLES = [
     "contrato",
-    "empresa",
+    "fornecedor",
+    "fornecedor_representante",
     "fiscal",
     "usuario",
+    "usuario_perfil",
     "posto_trabalho",
     "categoria_posto_trabalho",
     "local_atuacao",
@@ -50,12 +52,12 @@ REGRAS OBRIGATÓRIAS:
 - Nunca use INSERT/UPDATE/DELETE/DROP/CREATE/ALTER/TRUNCATE.
 - PROIBIDO selecionar colunas FK (`*_id`) no SELECT final. Sempre faça LEFT JOIN para resolver o nome/descrição da entidade referenciada.
 - Para qualquer SELECT em `contrato`, JOIN OBRIGATÓRIO:
-    LEFT JOIN nexusgov.empresa e ON e.id = c.empresa_id
+    LEFT JOIN nexusgov.fornecedor f ON f.id = c.fornecedor_id
     LEFT JOIN nexusgov.fiscal ft ON ft.id = c.fiscal_titular_id
     LEFT JOIN nexusgov.usuario ut ON ut.id = ft.usuario_id
     LEFT JOIN nexusgov.fiscal fs ON fs.id = c.fiscal_suplente_id
     LEFT JOIN nexusgov.usuario us ON us.id = fs.usuario_id
-  E traga no SELECT: e.razao_social, e.cnpj, ut.nome, ut.email, us.nome, us.email.
+  E traga no SELECT: f.razao_social, f.cnpj, ut.nome, ut.email, us.nome, us.email.
 
 Schema das tabelas disponíveis:
 {schema}
