@@ -47,9 +47,10 @@ class Settings(BaseSettings):
     # Chat sobre documentos (RAG) — chunks são frases; top_k maior compensa contexto curto
     doc_chat_top_k: int = 12
 
-    # JWT (mesmo secret do nexusgov-api, base64-encoded)
-    jwt_secret: str
-    jwt_algorithms: str = "HS384"
+    # JWT — tokens emitidos pelo Keycloak, mesmo realm do nexusgov-api.
+    # Assinatura assimétrica: a chave pública vem do JWKS do realm, não há secret.
+    keycloak_issuer_uri: str = "http://45.79.207.184:8082/realms/nexusgov"
+    jwt_algorithms: str = "RS256"
 
     # Sessions
     session_backend: str = "memory"
@@ -88,6 +89,10 @@ class Settings(BaseSettings):
     @property
     def jwt_algorithms_list(self) -> list[str]:
         return [a.strip() for a in self.jwt_algorithms.split(",") if a.strip()]
+
+    @property
+    def keycloak_jwks_uri(self) -> str:
+        return f"{self.keycloak_issuer_uri.rstrip('/')}/protocol/openid-connect/certs"
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 
