@@ -14,13 +14,22 @@ from sqlalchemy.engine import Engine
 
 from app.config import get_settings
 from app.services.document_extractor import extrair_texto
-from app.services.embedding_service import dividir_em_chunks, gerar_embeddings, vetor_para_literal
+from app.services.embedding_service import (
+    dividir_em_chunks,
+    gerar_embeddings_em_lotes,
+    vetor_para_literal,
+)
 from app.services.storage import baixar_anexo
 
 logger = logging.getLogger(__name__)
 
 # Anexos pendentes, com erro (dentro do limite de tentativas) ou presos em
-# PROCESSANDO há mais de 15 min (instância anterior morreu no meio).
+# PROCESSANDO sem progresso (instância anterior morreu no meio).
+#
+# `ingestao_em` recebe heartbeat a cada lote de embeddings durante o processamento,
+# então a comparação abaixo mede tempo SEM PROGRESSO, não tempo desde o claim. Sem
+# o heartbeat, documentos que demoram mais que o limite seriam re-claimados enquanto
+# ainda estavam sendo processados.
 _SQL_PENDENTES = text(
     """
     SELECT a.id, a.contrato_id, a.nome_arquivo, a.arquivo_key
@@ -30,11 +39,16 @@ _SQL_PENDENTES = text(
             a.ingestao_status = 'PENDENTE'
             OR (a.ingestao_status = 'ERRO' AND a.ingestao_tentativas < :max_tentativas)
             OR (a.ingestao_status = 'PROCESSANDO'
-                AND a.ingestao_em < now() - interval '15 minutes')
+                AND a.ingestao_em < now() - make_interval(mins => :travado_minutos))
        )
      ORDER BY a.id
      LIMIT :lote
     """
+)
+
+# Marca progresso do anexo em processamento (ver comentário em _SQL_PENDENTES).
+_SQL_HEARTBEAT = text(
+    "UPDATE nexusgov.contrato_anexo SET ingestao_em = now() WHERE id = :anexo_id"
 )
 
 _SQL_CLAIM = text(
@@ -106,7 +120,11 @@ def processar_pendentes(engine: Engine) -> int:
     with engine.connect() as conn:
         pendentes = conn.execute(
             _SQL_PENDENTES,
-            {"max_tentativas": settings.ingest_max_tentativas, "lote": settings.ingest_lote},
+            {
+                "max_tentativas": settings.ingest_max_tentativas,
+                "lote": settings.ingest_lote,
+                "travado_minutos": settings.ingest_travado_minutos,
+            },
         ).fetchall()
 
     sucesso = 0
@@ -140,10 +158,20 @@ def _ingerir_anexo(
     if not chunks:
         raise RuntimeError("Nenhum texto extraído do documento")
 
-    embeddings = gerar_embeddings(chunks)
+    # Descarta chunks de uma execução anterior antes de repovoar: o anexo pode estar
+    # sendo reprocessado após erro/interrupção.
+    with engine.begin() as conn:
+        conn.execute(_SQL_LIMPAR_CHUNKS, {"anexo_id": anexo_id})
 
-    gravar_chunks(engine, anexo_id, contrato_id, nome_arquivo, chunks, embeddings)
-    return len(chunks)
+    logger.info(
+        "Ingerindo anexo=%s arquivo=%r: %s chunks", anexo_id, nome_arquivo, len(chunks)
+    )
+    gravados = 0
+    for offset, lote, embeddings in gerar_embeddings_em_lotes(chunks):
+        gravar_chunks(engine, anexo_id, contrato_id, nome_arquivo, offset, lote, embeddings)
+        gravados += len(lote)
+
+    return gravados
 
 
 def gravar_chunks(
@@ -151,13 +179,17 @@ def gravar_chunks(
     anexo_id: int,
     contrato_id: int,
     nome_arquivo: str | None,
+    offset: int,
     chunks: list[str],
     embeddings: list[list[float]],
 ) -> None:
-    """Substitui os chunks do anexo (delete + insert) em uma transação."""
+    """Grava um lote de chunks e marca progresso do anexo, na mesma transação.
+
+    O heartbeat vai junto com os inserts para que `ingestao_em` só avance quando há
+    progresso real gravado.
+    """
     with engine.begin() as conn:
-        conn.execute(_SQL_LIMPAR_CHUNKS, {"anexo_id": anexo_id})
-        for idx, (chunk, emb) in enumerate(zip(chunks, embeddings)):
+        for idx, (chunk, emb) in enumerate(zip(chunks, embeddings), start=offset):
             conn.execute(
                 _SQL_INSERIR_CHUNK,
                 {
@@ -169,6 +201,7 @@ def gravar_chunks(
                     "embedding": vetor_para_literal(emb),
                 },
             )
+        conn.execute(_SQL_HEARTBEAT, {"anexo_id": anexo_id})
 
 
 def status_ingestao_contrato(engine: Engine, contrato_id: int) -> list[dict]:

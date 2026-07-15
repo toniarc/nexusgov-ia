@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     ingest_poll_seconds: int = 30
     ingest_max_tentativas: int = 3
     ingest_lote: int = 5
+    # Tempo SEM PROGRESSO após o qual um anexo em PROCESSANDO é considerado órfão
+    # (instância morreu no meio) e volta para a fila. Como há heartbeat a cada lote
+    # de embeddings, não precisa acomodar a duração total do documento.
+    ingest_travado_minutos: int = 15
     # Chunk = 1 frase; fragmentos < min agregam à frase seguinte; > max fatia em janela.
     chunk_max_chars: int = 1500
     chunk_min_chars: int = 80

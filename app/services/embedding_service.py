@@ -2,6 +2,7 @@
 
 import logging
 import re
+from collections.abc import Iterator
 
 from ollama import Client
 
@@ -20,13 +21,19 @@ def get_embed_client() -> Client:
     return Client(host=settings.ollama_embed_base_url, headers=headers or None)
 
 
-def gerar_embeddings(textos: list[str]) -> list[list[float]]:
-    """Gera embeddings em lotes. Levanta exceção se dimensão divergir do configurado."""
+def gerar_embeddings_em_lotes(
+    textos: list[str],
+) -> Iterator[tuple[int, list[str], list[list[float]]]]:
+    """Gera embeddings lote a lote, cedendo (offset, lote, embeddings) por lote.
+
+    Permite ao chamador persistir o progresso conforme os lotes chegam, em vez de
+    acumular o documento inteiro em memória. Levanta exceção se a dimensão divergir
+    do configurado.
+    """
     if not textos:
-        return []
+        return
     settings = get_settings()
     client = get_embed_client()
-    resultado: list[list[float]] = []
 
     for i in range(0, len(textos), _BATCH_SIZE):
         lote = textos[i : i + _BATCH_SIZE]
@@ -38,14 +45,23 @@ def gerar_embeddings(textos: list[str]) -> list[list[float]]:
             raise RuntimeError(
                 f"Ollama retornou {len(embeddings or [])} embeddings para lote de {len(lote)}"
             )
-        resultado.extend([list(e) for e in embeddings])
+        vetores = [list(e) for e in embeddings]
+        dim = len(vetores[0])
+        if dim != settings.embedding_dim:
+            raise RuntimeError(
+                f"Dimensão do embedding ({dim}) difere do configurado ({settings.embedding_dim}). "
+                f"Verifique OLLAMA_EMBED_MODEL/EMBEDDING_DIM."
+            )
+        yield i, lote, vetores
 
-    dim = len(resultado[0])
-    if dim != settings.embedding_dim:
-        raise RuntimeError(
-            f"Dimensão do embedding ({dim}) difere do configurado ({settings.embedding_dim}). "
-            f"Verifique OLLAMA_EMBED_MODEL/EMBEDDING_DIM."
-        )
+
+def gerar_embeddings(textos: list[str]) -> list[list[float]]:
+    """Gera embeddings de todos os textos de uma vez. Use apenas para listas pequenas
+    (ex.: a pergunta do usuário); documentos inteiros devem usar
+    `gerar_embeddings_em_lotes`."""
+    resultado: list[list[float]] = []
+    for _, _, vetores in gerar_embeddings_em_lotes(textos):
+        resultado.extend(vetores)
     return resultado
 
 
